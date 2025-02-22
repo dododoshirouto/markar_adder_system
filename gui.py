@@ -3,10 +3,38 @@ from PyQt6.QtWidgets import (
     QSlider, QCheckBox, QRadioButton, QHBoxLayout, QSpinBox, QGroupBox, QComboBox, QListWidget
 )
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QDragEnterEvent, QDropEvent
+from PyQt6.QtGui import QDragEnterEvent, QDropEvent, QColor
 import ffmpeg
 
 class AudioMarkerApp(QWidget):
+  
+    # color_options = ["not use", "Red", "Blue", "Green", "Yellow", "Magenta", "Cyan"]
+    color_options = [
+        {
+            "name": "Red",
+            "color": Qt.GlobalColor.red
+        },
+        {
+            "name": "Blue",
+            "color": Qt.GlobalColor.blue
+        },
+        {
+            "name": "Green",
+            "color": Qt.GlobalColor.green
+        },
+        {
+            "name": "Yellow",
+            "color": Qt.GlobalColor.yellow
+        },
+        {
+            "name": "Magenta",
+            "color": Qt.GlobalColor.magenta
+        },
+        {
+            "name": "Cyan",
+            "color": Qt.GlobalColor.cyan
+        }
+    ]
         
     silence_spinbox:QSpinBox = None
     silence_slider:QSlider = None
@@ -42,9 +70,11 @@ class AudioMarkerApp(QWidget):
         track_group = QGroupBox("トラック選択 & マーカー色設定")
         track_layout = QVBoxLayout()
         self.track_list = QListWidget()
-        self.track_list.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
+        self.track_list.itemSelectionChanged.connect(self.update_color_selection)
+        self.track_list.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
         self.color_dropdown = QComboBox()
-        self.color_dropdown.addItems(["Red", "Blue", "Green", "Yellow", "Magenta", "Cyan"])
+        self.color_dropdown.currentIndexChanged.connect(self.apply_selected_color)
+        self.color_dropdown.addItems(['- None -'] + [color['name'] for color in self.color_options])
         track_layout.addWidget(QLabel("使用するトラックを選択"))
         track_layout.addWidget(self.track_list)
         track_layout.addWidget(QLabel("マーカーの色を選択"))
@@ -133,6 +163,23 @@ class AudioMarkerApp(QWidget):
             self.update_track_list()
     
     def update_track_list(self):
+        """ 選択した動画ファイルから音声トラック情報を取得し、リストを更新し、デフォルトの色を割り当て """
+        self.track_list.clear()
+        self.track_colors = {}
+        
+        if not self.file_path:
+            return
+        
+        probe = ffmpeg.probe(self.file_path)
+        audio_streams = [stream for stream in probe['streams'] if stream['codec_type'] == 'audio']
+        
+        for i, stream in enumerate(audio_streams):
+            track_name = f"Track {i+1} ({stream['codec_name']})"
+            self.track_list.addItem(track_name)
+            self.track_colors[track_name] = self.color_options[i % len(self.color_options)]['name']  # 色を順番に割り当て
+        
+        self.update_color_selection()
+        self.adjust_track_list_height()
         """ 選択した動画ファイルから音声トラック情報を取得し、リストを更新 """
         self.track_list.clear()
         if not self.file_path:
@@ -143,7 +190,57 @@ class AudioMarkerApp(QWidget):
         
         for i, stream in enumerate(audio_streams):
             self.track_list.addItem(f"Track {i+1} ({stream['codec_name']})")
+        self.track_list.addItem("")
 
+        self.update_color_selection()
+        
+    def adjust_track_list_height(self):
+        """ トラック数に応じてリストの高さを調整 """
+        row_height = 26  # 各トラックの高さ（ピクセル）
+        max_visible_tracks = 10  # 一度に表示する最大のトラック数
+        track_count = self.track_list.count()
+        new_height = min(track_count, max_visible_tracks) * row_height
+        self.track_list.setFixedHeight(new_height)
+
+    def update_color_selection(self):
+        """ 選択されたトラックに対して、現在選択中の色を適用し、背景色を変更 """
+        for index in range(self.track_list.count()):
+            item = self.track_list.item(index)
+            track_name = item.text()
+            color_name = self.track_colors.get(track_name, "- None -")
+            color = QColor(next((c['color'] for c in self.color_options if c['name'] == color_name), Qt.GlobalColor.black))
+            item.setBackground(color)  # 背景色を設定
+            alpha_color = color
+            alpha_color.setAlphaF(0.5)
+            item.setBackground(alpha_color)
+            selected_color = color
+            selected_color.setAlphaF(0.7)
+            if item.isSelected():
+                item.setBackground(selected_color)
+        
+        selected_items = self.track_list.selectedItems()
+        if selected_items:
+            track_name = selected_items[0].text()
+            current_color = self.track_colors.get(track_name, "- None -")
+            index = self.color_dropdown.findText(current_color)
+            if index != -1:
+                self.color_dropdown.setCurrentIndex(index)
+        """ 選択されたトラックに対して、現在選択中の色を適用 """
+        selected_items = self.track_list.selectedItems()
+        if selected_items:
+            track_name = selected_items[0].text()
+            current_color = self.track_colors.get(track_name, "- None -")
+            index = self.color_dropdown.findText(current_color)
+            if index != -1:
+                self.color_dropdown.setCurrentIndex(index)
+
+    def apply_selected_color(self):
+        """ 選択されたトラックに新しい色を適用 """
+        selected_items = self.track_list.selectedItems()
+        if selected_items:
+            track_name = selected_items[0].text()
+            selected_color_name = self.color_dropdown.currentText()
+            self.track_colors[track_name] = selected_color_name
 
     def dragEnterEvent(self, event: QDragEnterEvent):
         if event.mimeData().hasUrls():

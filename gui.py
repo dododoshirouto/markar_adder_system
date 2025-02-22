@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QDragEnterEvent, QDropEvent
+import ffmpeg
 
 class AudioMarkerApp(QWidget):
         
@@ -129,6 +130,20 @@ class AudioMarkerApp(QWidget):
         if file_path:
             self.file_label.setText(file_path)
             self.file_path = file_path
+            self.update_track_list()
+    
+    def update_track_list(self):
+        """ 選択した動画ファイルから音声トラック情報を取得し、リストを更新 """
+        self.track_list.clear()
+        if not self.file_path:
+            return
+        
+        probe = ffmpeg.probe(self.file_path)
+        audio_streams = [stream for stream in probe['streams'] if stream['codec_type'] == 'audio']
+        
+        for i, stream in enumerate(audio_streams):
+            self.track_list.addItem(f"Track {i+1} ({stream['codec_name']})")
+
 
     def dragEnterEvent(self, event: QDragEnterEvent):
         if event.mimeData().hasUrls():
@@ -140,6 +155,7 @@ class AudioMarkerApp(QWidget):
             file_path = urls[0].toLocalFile()
             self.file_label.setText(file_path)
             self.file_path = file_path
+            self.update_track_list()
 
 if __name__ == "__main__":
     app = QApplication([])

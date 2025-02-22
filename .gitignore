@@ -1,0 +1,8 @@
+/venv
+/build
+/dist
+# /_*
+*.lnk
+*.spec
+_Launch Cursor.bat
+_.py

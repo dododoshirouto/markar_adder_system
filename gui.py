@@ -7,6 +7,7 @@ from PyQt6.QtCore import Qt
 class AudioMarkerApp(QWidget):
     def __init__(self):
         super().__init__()
+        self.file_path = None  # ファイルパスを保存する変数
         self.initUI()
 
     def initUI(self):
@@ -15,8 +16,14 @@ class AudioMarkerApp(QWidget):
         # ファイル選択セクション（D&D対応予定）
         file_group = QGroupBox("ファイル選択")
         file_layout = QVBoxLayout()
-        self.file_label = QLabel("選択されたファイル: なし")
+        self.file_label_head = QLabel("選択されたファイル:")
+        self.file_label = QLabel("なし")
+        self.file_label.setMaximumHeight(20)
+        self.file_label.setWordWrap(False)
+        self.file_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         self.file_button = QPushButton("ファイルを選択")
+        self.file_button.clicked.connect(self.select_file)
+        file_layout.addWidget(self.file_label_head)
         file_layout.addWidget(self.file_label)
         file_layout.addWidget(self.file_button)
         file_group.setLayout(file_layout)
@@ -86,6 +93,12 @@ class AudioMarkerApp(QWidget):
         self.setLayout(layout)
         self.setWindowTitle("Audio Marker Tool")
         self.resize(400, 400)
+    
+    def select_file(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, "動画ファイルを選択", "", "Video Files (*.mp4 *.mov *.avi)")
+        if file_path:
+            self.file_label.setText(file_path)
+            self.file_path = file_path
 
 if __name__ == "__main__":
     app = QApplication([])

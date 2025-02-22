@@ -3,12 +3,14 @@ from PyQt6.QtWidgets import (
     QSlider, QCheckBox, QRadioButton, QHBoxLayout, QSpinBox, QGroupBox, QComboBox, QListWidget
 )
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QDragEnterEvent, QDropEvent
 
 class AudioMarkerApp(QWidget):
     def __init__(self):
         super().__init__()
         self.file_path = None  # ファイルパスを保存する変数
         self.initUI()
+        self.setAcceptDrops(True)  # D&Dを有効化
 
     def initUI(self):
         layout = QVBoxLayout()
@@ -97,6 +99,17 @@ class AudioMarkerApp(QWidget):
     def select_file(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "動画ファイルを選択", "", "Video Files (*.mp4 *.mov *.avi)")
         if file_path:
+            self.file_label.setText(file_path)
+            self.file_path = file_path
+
+    def dragEnterEvent(self, event: QDragEnterEvent):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+
+    def dropEvent(self, event: QDropEvent):
+        urls = event.mimeData().urls()
+        if urls:
+            file_path = urls[0].toLocalFile()
             self.file_label.setText(file_path)
             self.file_path = file_path
 

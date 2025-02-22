@@ -6,6 +6,12 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QDragEnterEvent, QDropEvent
 
 class AudioMarkerApp(QWidget):
+        
+    silence_spinbox:QSpinBox = None
+    silence_slider:QSlider = None
+    silence_duration_spinbox:QSpinBox = None
+    silence_duration_slider:QSlider = None
+
     def __init__(self):
         super().__init__()
         self.file_path = None  # ファイルパスを保存する変数
@@ -50,10 +56,12 @@ class AudioMarkerApp(QWidget):
         detect_layout = QVBoxLayout()
         detect_layout.addWidget(QLabel("無視する音量レベル (dB)"))
         self.silence_slider = QSlider(Qt.Orientation.Horizontal)
+        self.silence_slider.valueChanged.connect(self.sync_silence_spinbox)
         self.silence_slider.setMinimum(-80)
         self.silence_slider.setMaximum(0)
         self.silence_slider.setValue(-40)
         self.silence_spinbox = QSpinBox()
+        self.silence_spinbox.valueChanged.connect(self.sync_silence_slider)
         self.silence_spinbox.setRange(-80, 0)
         self.silence_spinbox.setValue(-40)
         detect_layout.addWidget(self.silence_slider)
@@ -61,10 +69,12 @@ class AudioMarkerApp(QWidget):
         
         detect_layout.addWidget(QLabel("無音の最低時間 (ms)"))
         self.silence_duration_slider = QSlider(Qt.Orientation.Horizontal)
+        self.silence_duration_slider.valueChanged.connect(self.sync_silence_duration_spinbox)
         self.silence_duration_slider.setMinimum(100)
         self.silence_duration_slider.setMaximum(10000)
         self.silence_duration_slider.setValue(500)
         self.silence_duration_spinbox = QSpinBox()
+        self.silence_duration_spinbox.valueChanged.connect(self.sync_silence_duration_slider)
         self.silence_duration_spinbox.setRange(100, 10000)
         self.silence_duration_spinbox.setValue(500)
         detect_layout.addWidget(self.silence_duration_slider)
@@ -93,6 +103,24 @@ class AudioMarkerApp(QWidget):
         layout.addWidget(self.create_marker_button)
         
         self.setLayout(layout)
+        self.setWindowTitle("Audio Marker Tool")
+        self.resize(400, 400)
+
+    def sync_silence_spinbox(self, value):
+        if self.silence_spinbox is None: return
+        self.silence_spinbox.setValue(value)
+
+    def sync_silence_slider(self, value):
+        if self.silence_slider is None: return
+        self.silence_slider.setValue(value)
+
+    def sync_silence_duration_spinbox(self, value):
+        if self.silence_duration_spinbox is None: return
+        self.silence_duration_spinbox.setValue(value)
+
+    def sync_silence_duration_slider(self, value):
+        if self.silence_duration_slider is None: return
+        self.silence_duration_slider.setValue(value)
         self.setWindowTitle("Audio Marker Tool")
         self.resize(400, 400)
     
